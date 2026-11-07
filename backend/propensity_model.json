@@ -1,0 +1,62 @@
+{
+ "intercept": -3.0001990561359495,
+ "weights": {
+  "lead_source=Channel partner": 0.18871299705450698,
+  "lead_source=Field sales": 0.1727453883882847,
+  "lead_source=Inbound call": 0.2028042754558397,
+  "lead_source=Referral": 0.8742012920627171,
+  "lead_source=Website form": -0.38024339867675977,
+  "lead_source=WhatsApp campaign": -1.0651310624611696,
+  "segment=Micro retail & services": -0.40985598514257354,
+  "segment=Professional offices": 0.20485823896406985,
+  "segment=Small manufacturers": 0.04072900596220953,
+  "segment=Small multi-site businesses": 0.1573582320397117,
+  "city_tier=1": 0.22428509893659943,
+  "city_tier=2": -0.23119560711318346,
+  "has_gstin=N": -0.7427795327555032,
+  "has_gstin=Y": 0.7358690245789168,
+  "has_udyam=N": -0.13876806337122483,
+  "has_udyam=Y": 0.13185755519464018,
+  "current_internet=Business broadband": -0.018887798131612798,
+  "current_internet=Home broadband": -0.0009316071199657796,
+  "current_internet=Leased line": 0.32896821697967776,
+  "current_internet=Mixed per site": 0.09754597859361723,
+  "current_internet=Mobile hotspot": -0.022979029711799624,
+  "annual_turnover_band=1.5 - 5 cr": 0.04482628203645545,
+  "annual_turnover_band=25 - 100 cr": -0.05069331950218198,
+  "annual_turnover_band=40 lakh - 1.5 cr": 0.0466597425084662,
+  "annual_turnover_band=5 - 25 cr": 0.14428553627001636,
+  "annual_turnover_band=< 40 lakh": -0.19198874948933586,
+  "employees": -0.026545245262550164,
+  "sites": -0.14870873800373316,
+  "spend_k": -0.11040782133087611
+ },
+ "numeric": {
+  "employees": [
+   "employee_count",
+   50,
+   200
+  ],
+  "sites": [
+   "num_sites",
+   5,
+   null
+  ],
+  "spend_k": [
+   "monthly_telecom_spend_inr",
+   10000,
+   null
+  ]
+ },
+ "categorical": [
+  "lead_source",
+  "segment",
+  "city_tier",
+  "has_gstin",
+  "has_udyam",
+  "current_internet",
+  "annual_turnover_band"
+ ],
+ "auc_holdout": 0.702,
+ "top20_capture": 0.436
+}

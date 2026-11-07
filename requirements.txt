@@ -1,0 +1,7 @@
+fastapi>=0.100
+uvicorn>=0.22
+python-multipart>=0.0.6
+pillow>=9.0
+numpy>=1.21
+pytesseract>=0.3.10
+cryptography>=41.0

@@ -1,0 +1,72 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Udyam Digital privacy and security note</title>
+<style>
+  @page{size:A4;margin:12mm 13mm}
+  body{font:11.2px/1.42 Arial,Helvetica,sans-serif;color:#1b1b1f;margin:0}
+  h1{font-size:19px;margin:0 0 2px} .sub{color:#4a4a55;margin:0 0 8px;font-size:10.5px}
+  h2{font-size:12.5px;margin:11px 0 4px;color:#c8102e}
+  p{margin:0 0 4px} ul{margin:0 0 4px;padding-left:15px} li{margin:1px 0}
+  table{width:100%;border-collapse:collapse;margin:2px 0 4px}
+  th,td{border-bottom:1px solid #e3e3e8;padding:3px 5px;text-align:left;vertical-align:top}
+  th{background:#f4f4f6;font-size:9.5px;text-transform:uppercase;color:#4a4a55}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .note{background:#fdecee;border-radius:6px;padding:5px 8px;margin-top:6px;font-size:9.6px}
+</style></head><body>
+<h1>Udyam Digital: data privacy and security note</h1>
+<p class="sub">Accel Business · YTL Hackathon 2026, Track A. Design choices in the prototype, mapped to the Digital Personal Data Protection Act, 2023 (DPDP). All data in the demo is synthetic.</p>
+
+<h2>1. Collect only what each step needs (purpose limitation and data minimisation)</h2>
+<table>
+  <tr><th>Step</th><th>What we collect</th><th>Why</th><th>What we do not collect</th></tr>
+  <tr><td>Advisor</td><td>Business type, city/PIN, sites, staff count, current setup, needs, budget; GSTIN only if the owner offers it</td><td>Choose an eligible bundle and price it</td><td>Name, phone, ID numbers, documents</td></tr>
+  <tr><td>Order</td><td>Contact name and mobile (shown masked as ••••••3210)</td><td>Resume the order and send updates</td><td>Email, address, date of birth</td></tr>
+  <tr><td>KYC</td><td>GST certificate, Udyam certificate, signatory ID, one utility bill</td><td>Verify the business before activation</td><td>Bank statements, Aadhaar images, extra pages</td></tr>
+  <tr><td>Booking</td><td>Install slot; UPI ID stored masked (•••@bank)</td><td>Schedule install and set up autopay</td><td>Card numbers, UPI PIN</td></tr>
+</table>
+
+<div class="two"><div>
+<h2>2. Notice and consent (DPDP s.5, s.6)</h2>
+<ul>
+  <li>A plain-language consent screen in English or Hindi appears <b>before</b> any upload. It says what is collected, why, how long it is kept and the owner's rights.</li>
+  <li>Verification consent is required to continue. Marketing on WhatsApp is a <b>separate, unticked</b> opt-in.</li>
+  <li>Each consent is stored with a version, timestamp, language and purpose flags. The API refuses uploads without it (HTTP 412).</li>
+</ul>
+<h2>3. The AI never sees documents</h2>
+<ul>
+  <li>The language model receives only the business profile, with GSTIN masked. KYC images and extracted fields never go to it.</li>
+  <li>The LLM cannot set prices. Prices come from the rules engine, and if the explanation mentions a rupee amount that is not in the quote, it is discarded and a template is used.</li>
+  <li>Without an API key the advisor runs rule-based, so no data leaves the server.</li>
+</ul>
+<h2>4. Security safeguards (DPDP s.8(5))</h2>
+<ul>
+  <li><b>Encryption at rest:</b> uploaded images are encrypted with Fernet (AES-128 + HMAC). The key is kept outside the database (env var or 0600 key file).</li>
+  <li><b>Masking:</b> GSTIN (37••••••••7L1ZS), ID numbers, consumer numbers, UPI IDs and mobile numbers are masked in screens, API responses and the audit log.</li>
+  <li><b>Access:</b> the owner's case needs order ID + 6-digit code. The back office needs a staff token (SSO and roles in production). Reviewers see only flagged checks.</li>
+  <li><b>Integrity:</b> idempotency keys stop duplicate orders and charges on retry. Prices and eligibility are re-checked on the server before an order is created.</li>
+  <li><b>Audit trail:</b> every consent, upload, check, review decision and milestone is logged, with identifiers masked.</li>
+</ul>
+</div><div>
+<h2>5. Retention and erasure (DPDP s.8(7))</h2>
+<ul>
+  <li>Demo: document images are deleted automatically <b>24 hours</b> after upload, purged on start-up and on every upload.</li>
+  <li>The owner can delete documents at any time from the tracker ("Delete my documents").</li>
+  <li>Production: keep the verification <b>result</b> and consent record for the contract term plus the period telecom KYC rules require. Delete images once the verification is approved.</li>
+</ul>
+<h2>6. Owner rights (DPDP s.11 to 13)</h2>
+<ul>
+  <li><b>Access:</b> the tracker shows the status, checks run and data held for the order.</li>
+  <li><b>Correction:</b> failed checks come with a plain fix (for example "upload a bill dated after 2026-04-16"), and the owner can re-upload.</li>
+  <li><b>Withdrawal and erasure:</b> one-tap document deletion. Withdrawing consent stops processing.</li>
+  <li><b>Grievance:</b> help line and WhatsApp on every tracker page. Escalation goes to a named grievance officer in production.</li>
+</ul>
+<h2>7. Human in the loop for risky cases</h2>
+<ul>
+  <li>Automatic approval happens only when every check passes. Registry problems (cancelled GSTIN), name mismatches and unreadable IDs go to a reviewer, never to an automatic rejection.</li>
+  <li>Issues the customer can fix (blurry photo, old bill, missing page) go back to the owner with instructions.</li>
+  <li>Orders with GST-only products cannot be activated on an inactive GSTIN.</li>
+</ul>
+<h2>8. Breach handling (DPDP s.8(6))</h2>
+<p>Breach playbook: contain, rotate the vault key, assess the impact from the audit log, then notify the Data Protection Board and affected owners as the Act requires.</p>
+</div></div>
+<div class="note"><b>Production gaps we would close:</b> DigiLocker pull instead of photo upload; Aadhaar-based e-sign and DoT-approved subscriber verification for SIMs; PostgreSQL with row-level access; a KMS-managed key; penetration test and DPIA before launch. The 90-day address-proof rule and the 2026-07-15 "today" date come from the case fixture.</div>
+</body></html>

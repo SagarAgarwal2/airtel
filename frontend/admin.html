@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accel Business · Partner & back office</title>
+<link rel="stylesheet" href="/static/styles.css">
+<style>
+  main{max-width:1100px}
+  .tabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap}
+  .tabs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 14px}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .bar{height:8px;border-radius:4px;background:var(--red);display:inline-block;vertical-align:middle}
+  .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat .card{margin:0}
+  .stat b{font-size:24px;display:block}
+  @media(max-width:640px){.stat{grid-template-columns:repeat(2,1fr)} table.t{font-size:13px}}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="/"><span class="logo">A</span><span>Accel <b>Business</b> · Back office</span></a>
+  <span class="small muted">Sales · Partners · Verification · Ops</span></header>
+<main>
+  <div class="stat" id="stat"></div>
+  <div class="tabs" id="tabs">
+    <button data-t="reviews" class="on">KYC review queue</button>
+    <button data-t="callbacks">Who to call next</button>
+    <button data-t="sessions">Advisor chats not closed</button>
+    <button data-t="orders">Orders & milestones</button>
+  </div>
+  <div id="view"></div>
+</main>
+<div id="toast"></div>
+<script>
+const TOKEN = "admin-demo";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rs = (n) => n == null ? "–" : "₹" + Number(n).toLocaleString("en-IN");
+const ago = (ts) => { const m = Math.round((Date.now()/1000 - ts)/60); return m < 60 ? m + " min ago" : Math.round(m/60) + " h ago"; };
+async function api(p, o = {}) {
+  const r = await fetch(p, { method: o.body ? "POST" : (o.method || "GET"), headers: { "X-Admin-Token": TOKEN, ...(o.body ? {"Content-Type":"application/json"} : {}) }, body: o.body ? JSON.stringify(o.body) : undefined });
+  const j = await r.json(); if (!r.ok) throw new Error(j.detail || "Error"); return j;
+}
+function toast(m){const el=$("#toast");el.textContent=m;el.classList.add("on");setTimeout(()=>el.classList.remove("on"),2500)}
+let tab = "reviews", sum = null;
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b)); draw(); });
+async function refresh(){ sum = await api("/api/admin/summary");
+  $("#stat").innerHTML = `<div class="card"><span class="muted small">Orders</span><b>${sum.orders.length}</b></div>
+   <div class="card"><span class="muted small">Waiting for reviewer</span><b>${sum.reviews.length}</b></div>
+   <div class="card"><span class="muted small">Chats not closed</span><b>${sum.unclosed_sessions.length}</b></div>
+   <div class="card"><span class="muted small">Propensity model</span><b>${Math.round(sum.model.top20_capture*100)}%</b><span class="tiny muted">of activations in top 20% · AUC ${sum.model.auc_holdout}</span></div>`;
+  draw(); }
+async function draw(){
+  const v = $("#view");
+  if (tab === "reviews") {
+    v.innerHTML = sum.reviews.length ? sum.reviews.map(r => `<div class="card"><div class="spread"><div><b>${esc(r.id)}</b> · ${esc(r.business || "Unknown business")} ${r.sample ? `<span class="pill">sample ${esc(r.sample)}</span>`:""}</div>
+      <div class="row"><button class="btn sec" data-a="reject" data-id="${r.id}">Reject</button><button class="btn" data-a="approve" data-id="${r.id}">Approve</button></div></div>
+      <p class="small muted">${esc(r.summary)}</p>
+      ${r.checks.map(c => `<div class="res"><span class="ic ${c.result}">${c.result==="fail"?"✕":"!"}</span><div><b>${esc(c.label)}</b><div class="small muted">${esc(c.detail)}</div></div></div>`).join("")}</div>`).join("")
+      : `<div class="card muted">No cases waiting. Cases with registry problems or name mismatches land here; customer-fixable issues (blurry photo, old bill) go back to the customer.</div>`;
+    v.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { await api("/api/admin/review/" + b.dataset.id, { body: { decision: b.dataset.a, note: "Reviewed in back office" } }); toast(b.dataset.a + "d"); refresh(); });
+  }
+  if (tab === "callbacks") {
+    const c = await api("/api/admin/callbacks?limit=40");
+    v.innerHTML = `<div class="card"><p class="small muted">Dropped leads from Apr–Jun 2026 ranked by a logistic-regression propensity score trained on lead-time fields (source, segment, tier, GSTIN, Udyam, current internet, turnover, size). Holdout AUC ${c.model.auc_holdout}; the top 20% of leads hold ${Math.round(c.model.top20_capture*100)}% of activations. Contact names are masked.</p>
+      <table class="t"><tr><th>Score</th><th>Lead</th><th>Business</th><th>City</th><th>Source</th><th>Dropped at</th><th>Reason</th><th>Language</th></tr>
+      ${c.leads.map(l => `<tr><td><span class="bar" style="width:${Math.round(l.score*200)}px"></span> ${Math.round(l.score*100)}%</td><td>${esc(l.lead_id)}<div class="tiny muted">${esc(l.contact)}</div></td><td>${esc(l.business)}<div class="tiny muted">${esc(l.type)}</div></td><td>${esc(l.city)}</td><td>${esc(l.source)}</td><td>${esc(l.stage)}</td><td class="small">${esc(l.drop_reason)}</td><td>${esc(l.language)}</td></tr>`).join("")}</table></div>`;
+  }
+  if (tab === "sessions") {
+    v.innerHTML = `<div class="card"><p class="small muted">Owners who chatted with the advisor but did not place an order. Partners and field sales pick these up; the partner code stays with the case.</p>
+      <table class="t"><tr><th>Session</th><th>When</th><th>Business</th><th>City</th><th>Staff</th><th>Stage</th><th>Partner</th></tr>
+      ${sum.unclosed_sessions.map(s => `<tr><td>${esc(s.id)}</td><td class="small">${ago(s.updated)}</td><td>${esc(s.profile.business_type || "–")}</td><td>${esc(s.profile.city || "–")}</td><td>${esc(s.profile.employees || "–")}</td><td class="small">${esc(s.stage)}</td><td>${esc(s.partner || "–")}</td></tr>`).join("") || `<tr><td colspan=7 class="muted">None yet</td></tr>`}</table></div>`;
+  }
+  if (tab === "orders") {
+    v.innerHTML = `<div class="card"><p class="small muted">Product teams post install milestones here; the owner's tracker updates instantly. (Demo: use “Post next milestone”.)</p>
+      <table class="t"><tr><th>Order</th><th>Business</th><th>Monthly</th><th>KYC</th><th>Status</th><th>Partner</th><th></th></tr>
+      ${sum.orders.map(o => `<tr><td>${esc(o.id)}<div class="tiny muted">${ago(o.created)}</div></td><td>${esc(o.business_type || "")}<div class="tiny muted">${esc(o.city || "")}</div></td><td>${rs(o.monthly)}</td><td><span class="pill ${o.kyc==="verified"?"ok":o.kyc==="manual_review"?"warn":""}">${esc(o.kyc)}</span></td><td class="small">${esc(o.status)}</td><td>${esc(o.partner || "–")}</td>
+      <td><button class="btn sec" data-adv="${o.id}">Post next milestone</button></td></tr>`).join("") || `<tr><td colspan=7 class="muted">No orders yet</td></tr>`}</table></div>`;
+    v.querySelectorAll("[data-adv]").forEach(b => b.onclick = async () => { try { const r = await api("/api/admin/advance/" + b.dataset.adv, { body: {} }); toast(r.milestone ? "Posted: " + r.milestone : "Already live"); refresh(); } catch (e) { toast(e.message); } });
+  }
+}
+refresh(); setInterval(refresh, 15000);
+</script>
+</body>
+</html>

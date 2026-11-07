@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Udyam Digital architecture</title>
+<style>
+  :root{--red:#c8102e;--redt:#fdecee;--ink:#1b1b1f;--ink2:#4a4a55;--mute:#767684;--line:#d9d9e0;--ok:#0b7a52;--okt:#e9f6f0;--amb:#a85d00;--ambt:#fff5e6;--bg:#f6f6f8}
+  *{box-sizing:border-box} body{margin:0;background:#fff;font:15px/1.35 Arial,Helvetica,sans-serif;color:var(--ink)}
+  .wrap{width:1600px;padding:36px 40px 30px}
+  h1{font-size:28px;margin:0 0 4px} .sub{color:var(--ink2);margin:0 0 22px;font-size:16px}
+  .grid{display:grid;grid-template-columns:230px 40px 1fr 40px 300px 40px 260px;align-items:stretch}
+  .col{background:var(--bg);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .col h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 2px}
+  .box{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+  .box b{display:block;font-size:15px;margin-bottom:3px}
+  .box span{font-size:13px;color:var(--ink2)}
+  .ai{border-color:var(--red);background:var(--redt)}
+  .ext{border-color:#e3b26a;background:var(--ambt)}
+  .db{border-color:#86c2a7;background:var(--okt)}
+  .arrow{display:flex;align-items:center;justify-content:center;color:#9a9aa6;font-size:28px}
+  .api{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .api .wide{grid-column:span 2}
+  .flow{margin-top:22px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .step{border-radius:12px;background:var(--bg);padding:12px}
+  .step .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;font-size:13px;margin-right:6px}
+  .step b{font-size:15px} .step p{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+  .step .d{margin-top:6px;font-size:12px;color:var(--ok);font-weight:700}
+  .legend{margin-top:16px;display:flex;gap:18px;font-size:13px;color:var(--ink2)}
+  .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:1.5px solid}
+</style></head><body><div class="wrap">
+<h1>Udyam Digital: solution architecture</h1>
+<p class="sub">One Journey API keeps the advisor, quote, KYC and install status under a single case ID. Only the rules engine sets prices, and KYC documents never reach the language model.</p>
+<div class="grid">
+  <div class="col"><h2>Channels</h2>
+    <div class="box"><b>Mobile web app</b><span>English · हिंदी, works on any phone browser, resume with a 6-digit code</span></div>
+    <div class="box"><b>WhatsApp</b><span>Cloud API webhook drives the same advisor, then sends a link to the quote</span></div>
+    <div class="box"><b>Partner / field sales</b><span>Partner QR or link (?ref=) keeps referral credit on the case</span></div>
+    <div class="box"><b>Back office</b><span>KYC review queue, ranked call list, install milestones</span></div>
+  </div>
+  <div class="arrow">➜</div>
+  <div class="col"><h2>Journey API (FastAPI)</h2>
+    <div class="api">
+      <div class="box ai"><b>GenAI advisor</b><span>Asks 6 questions (type, city/PIN and sites, staff, tools, GSTIN, budget). The LLM extracts fields and phrases the explanation; a rule-based parser works without a key.</span></div>
+      <div class="box"><b>Rules &amp; pricing engine</b><span>City tier, minimum staff and sites, active GSTIN, product dependencies, catalogue prices, budget fit. Explains every item it leaves out.</span></div>
+      <div class="box"><b>Quote &amp; checkout</b><span>One monthly price, add-on toggles, server-side re-pricing, idempotency keys on order and booking</span></div>
+      <div class="box"><b>Smart KYC</b><span>Consent first. Blur and skew checks, OCR, then GSTIN checksum, registry status, name, address, Udyam, bill age and signatory. Result is auto-clear, fix or human review.</span></div>
+      <div class="box"><b>Order tracker</b><span>Install slot, mock UPI autopay, milestones posted by ops, per-product status and ETA</span></div>
+      <div class="box"><b>Propensity score</b><span>Logistic model on lead fields. AUC 0.70; the top 20% of leads hold 44% of activations.</span></div>
+      <div class="box wide"><b>Privacy layer</b><span>Consent ledger (versioned) · IDs masked in UI and logs · documents encrypted and auto-deleted after 24 h · audit trail · delete-my-documents</span></div>
+    </div>
+  </div>
+  <div class="arrow">➜</div>
+  <div class="col"><h2>External / mocked services</h2>
+    <div class="box ext"><b>LLM API (optional)</b><span>Gemini, OpenAI or Anthropic. Sees only the business profile with masked IDs. Any price it writes is checked against the quote.</span></div>
+    <div class="box ext"><b>GSTIN lookup (mock)</b><span>3,534 records, including Cancelled and Suspended</span></div>
+    <div class="box ext"><b>Udyam lookup (mock)</b><span>2,723 records</span></div>
+    <div class="box ext"><b>OCR</b><span>Tesseract, with RapidOCR as a pure-Python fallback</span></div>
+    <div class="box ext"><b>Next: DigiLocker, Aadhaar e-sign, UPI Autopay, provisioning</b><span>Adapters in production</span></div>
+  </div>
+  <div class="arrow">➜</div>
+  <div class="col"><h2>Data</h2>
+    <div class="box db"><b>Case store</b><span>SQLite in the prototype, PostgreSQL in production: sessions, orders, events, consent</span></div>
+    <div class="box db"><b>Encrypted document vault</b><span>Fernet (AES) at rest, 24-hour expiry in the demo</span></div>
+    <div class="box db"><b>Reference data</b><span>Product catalogue, lead history (for the propensity score)</span></div>
+  </div>
+</div>
+<div class="flow">
+  <div class="step"><span class="n">1</span><b>Discover</b><p>Owner chats in Hindi or English. Advisor fills the profile.</p><div class="d">Profile only, no documents</div></div>
+  <div class="step"><span class="n">2</span><b>Recommend</b><p>Rules engine builds an eligible bundle and says why for each item.</p><div class="d">Prices from catalogue only</div></div>
+  <div class="step"><span class="n">3</span><b>Quote</b><p>Toggle add-ons. Dependencies are enforced and the price is recalculated on the server.</p><div class="d">Order + 6-digit resume code</div></div>
+  <div class="step"><span class="n">4</span><b>Consent + KYC</b><p>Upload 4 documents. OCR and registry checks run in about 3 seconds per applicant.</p><div class="d">Encrypted, masked, 24 h</div></div>
+  <div class="step"><span class="n">5</span><b>Book + pay</b><p>Pick install slot, set up UPI autopay. Nothing is charged until services are live.</p><div class="d">Idempotent booking</div></div>
+  <div class="step"><span class="n">6</span><b>Track</b><p>Live milestones and per-product ETA. Delays escalate automatically.</p><div class="d">No status-chasing calls</div></div>
+</div>
+<div class="legend"><span><i style="border-color:#c8102e;background:#fdecee"></i>AI component</span><span><i style="border-color:#e3b26a;background:#fff5e6"></i>External or mocked API</span><span><i style="border-color:#86c2a7;background:#e9f6f0"></i>Data store</span><span><i style="border-color:#d9d9e0;background:#fff"></i>Deterministic service</span></div>
+</div></body></html>
